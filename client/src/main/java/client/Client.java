@@ -207,19 +207,15 @@ public class Client {
     private void executeScript(String fileName) {
         File file = new File(fileName);
 
-        // Проверка существования файла
         if (!file.exists()) {
             System.out.println("Файл не найден: " + fileName);
             return;
         }
-
-        // Проверка прав на чтение
         if (!file.canRead()) {
             System.out.println("Нет прав на чтение файла: " + fileName);
             return;
         }
 
-        // Защита от рекурсии
         String absolutePath;
         try {
             absolutePath = file.getCanonicalPath();
@@ -234,18 +230,23 @@ public class Client {
 
         activeScripts.add(absolutePath);
 
-        try (Scanner scanner = new Scanner(file)) {
-            int lineNum = 0;
-            while (scanner.hasNextLine()) {
-                String line = scanner.nextLine().trim();
-                lineNum++;
+        try (Scanner fileScanner = new Scanner(file)) {
+            // Включаем режим скрипта
+            inputManager.startScriptMode(fileScanner);
+
+            while (fileScanner.hasNextLine()) {
+                String line = fileScanner.nextLine().trim();
                 if (line.isEmpty() || line.startsWith("#")) continue;
-                System.out.println("[скрипт " + fileName + ":" + lineNum + "] " + line);
+                System.out.println("[скрипт " + fileName + "] " + line);
+
+                // Временно сохраняем оригинальный scanner? Нет, fileScanner уже активен
                 processCommand(line);
             }
         } catch (FileNotFoundException e) {
             System.out.println("Ошибка открытия файла: " + e.getMessage());
         } finally {
+            // Выключаем режим скрипта
+            inputManager.endScriptMode();
             activeScripts.remove(absolutePath);
         }
     }
